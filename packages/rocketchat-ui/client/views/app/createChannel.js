@@ -201,11 +201,11 @@ Template.createChannel.events({
 	////EKM FIX
 	'change .dropdownlist_field1'(e, t) {
 		t.field1.set(e.target.value);
-		t.field1txt.set(e.target.text);
+		t.field1txt.set(e.target.attributes.string);
 	},
 	'change .dropdownlist_field2'(e, t) {
 		t.field2.set(e.target.value);
-		t.field2txt.set(e.target.name);
+		t.field2txt.set(e.target.string);
 	},
    	 ////
 	'submit .create-channel__content'(e, instance) {
@@ -289,6 +289,7 @@ Template.createChannel.onRendered(function() {
 	      let projektid = data.projektid[i];
 	      option.text = projektid.kood + "   " + projektid.nimi;
 	      option.value = data.projektid[i].id;
+	      option.setAttribute('string', projektid.kood + "   " + projektid.nimi);
 	      kmproj.add(option);
 	    }
 		  
@@ -298,6 +299,7 @@ Template.createChannel.onRendered(function() {
 	      let etapid = data.etapid[i];
 	      option2.text = etapid.nimi;
 	      option2.value = etapid.id;
+	      option2.setAttribute('string', etapid.nimi);
 	      kmvaldkond.add(option2);
 	    }	  
 	   } else {
