@@ -205,7 +205,7 @@ Template.createChannel.events({
 	},
 	'change .dropdownlist_field2'(e, t) {
 		t.field2.set(e.target.value);
-		t.field2txt.set(e.target.string);
+		t.field2txt.set(e.target.attributes.string);
 	},
    	 ////
 	'submit .create-channel__content'(e, instance) {
@@ -237,7 +237,7 @@ Template.createChannel.events({
 		const extraData = Object.keys(instance.extensions_submits)
 			.reduce((result, key) => ({ ...result, ...instance.extensions_submits[key](instance) }), { broadcast });
 
-		Meteor.call(isPrivate ? 'createPrivateGroup' : 'createChannel', name, instance.selectedUsers.get().map((user) => user.username), readOnly, announcement, topic, customFields, extraData, function(err, result) {
+		Meteor.call(isPrivate ? 'createPrivateGroup' : 'createChannel', name, instance.selectedUsers.get().map((user) => user.username), readOnly, customFields, topic, extraData, function(err, result) {
 			if (err) {
 				if (err.error === 'error-invalid-name') {
 					return instance.invalid.set(true);
