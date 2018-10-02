@@ -286,7 +286,8 @@ Template.createChannel.onRendered(function() {
 	    let option;
 	    for (let i = 0; i < data.projektid.length; i++) {
 	      option = document.createElement('option');
-	      option.text = data.projektid[i].kood + "   " + data.projektid[i].nimi;
+	      let projektid = data.projektid[i];
+	      option.text = projektid.kood + "   " + projektid.nimi;
 	      option.value = data.projektid[i].id;
 	      kmproj.add(option);
 	    }
@@ -294,9 +295,10 @@ Template.createChannel.onRendered(function() {
 	    let option2;
 	    for (let i = 0; i < data.etapid.length; i++) {
 	      option2 = document.createElement('option');
-	      option2.text = data.etapid[i].nimi;
-	      option2.value = data.etapid[i].id;
-	      kmproj.add(option2);
+	      let etapid = data.etapid[i];
+	      option2.text = etapid.nimi;
+	      option2.value = etapid.id;
+	      kmvaldkond.add(option2);
 	    }	  
 	   } else {
 	    // VIGA
@@ -341,6 +343,8 @@ Template.createChannel.onCreated(function() {
 	///EKM FIX
 	this.field1 = new ReactiveVar('');
 	this.field2 = new ReactiveVar('');
+	this.field1txt = new ReactiveVar('');
+	this.field2txt = new ReactiveVar('');
 	/////
 	this.extensions_invalid = new ReactiveVar(false);
 	this.change = _.debounce(() => {
