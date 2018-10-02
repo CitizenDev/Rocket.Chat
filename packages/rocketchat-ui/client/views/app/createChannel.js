@@ -201,9 +201,11 @@ Template.createChannel.events({
 	////EKM FIX
 	'change .dropdownlist_field1'(e, t) {
 		t.field1.set(e.target.value);
+		t.field1txt.set(e.target.text);
 	},
 	'change .dropdownlist_field2'(e, t) {
 		t.field2.set(e.target.value);
+		t.field2txt.set(e.target.name);
 	},
    	 ////
 	'submit .create-channel__content'(e, instance) {
@@ -216,7 +218,10 @@ Template.createChannel.events({
 		const isPrivate = type === 'p';
 		/// EKM FIX ///
 		const valdkond = instance.field1.get();
+		const valdkondtxt = instance.field1txt.get();
 		const projekt = instance.field2.get();
+		const announcement = instance.field2txt.get();
+		const topic = instance.field1txt.get();
 		const customFields = {
 			valdkond: valdkond,
 			projekt: projekt
@@ -232,7 +237,7 @@ Template.createChannel.events({
 		const extraData = Object.keys(instance.extensions_submits)
 			.reduce((result, key) => ({ ...result, ...instance.extensions_submits[key](instance) }), { broadcast });
 
-		Meteor.call(isPrivate ? 'createPrivateGroup' : 'createChannel', name, instance.selectedUsers.get().map((user) => user.username), readOnly, customFields, extraData, function(err, result) {
+		Meteor.call(isPrivate ? 'createPrivateGroup' : 'createChannel', name, instance.selectedUsers.get().map((user) => user.username), readOnly, announcement, topic, customFields, extraData, function(err, result) {
 			if (err) {
 				if (err.error === 'error-invalid-name') {
 					return instance.invalid.set(true);
@@ -255,36 +260,48 @@ Template.createChannel.events({
 
 Template.createChannel.onRendered(function() {
 	////////EKM FIX
-	let dropdown = document.getElementById('kmproj');
-	dropdown.length = 0;
+	let kmproj = document.getElementById('kmproj');
+	let kmvaldkond = document.getElementById('kmvaldkond');
+	kmproj.length = 0;
+	kmvaldkond.length = 0;
 
-	let defaultOption = document.createElement('option');
-	defaultOption.text = 'Vali vestlusega seotud projekt';
-	defaultOption.value = '';
+	let defaultOption1 = document.createElement('option');
+	let defaultOption2 = document.createElement('option');
+	defaultOption1.text = 'Vali vestlusega seotud projekt';
+	defaultOption2.text = 'Vali vestlusega seotud valdkond';
+	defaultOption1.value = defaultOption2.value = '';
+	kmproj.add(defaultOption1);
+	kmvaldkond.add(defaultOption2);
+	
+	kmproj.selectedIndex = kmvaldkond.selectedIndex = 0;
 
-	dropdown.add(defaultOption);
-	dropdown.selectedIndex = 0;
-
-	const url = 'http://ttop.kodumaja.ee/index.php?seckood=mitte_nii_kaval-kood';
+	const url = 'http://ttop.kodumaja.ee/index.php?seckood=anna_pohip_etapid_ja_projektid';
 
 	const request = new XMLHttpRequest();
 	request.open('GET', url, true);
-
+	
 	request.onload = function() {
 	  if (request.status === 200) {
 	    const data = JSON.parse(request.responseText);
 	    let option;
-	    for (let i = 0; i < data.length; i++) {
+	    for (let i = 0; i < data.projektid.length; i++) {
 	      option = document.createElement('option');
-	      option.text = data[i].kood + "   " + data[i].nimi;
-	      option.value = data[i].id;
-	      dropdown.add(option);
+	      option.text = data.projektid[i].kood + "   " + data.projektid[i].nimi;
+	      option.value = data.projektid[i].id;
+	      kmproj.add(option);
 	    }
+		  
+	    let option2;
+	    for (let i = 0; i < data.etapid.length; i++) {
+	      option2 = document.createElement('option');
+	      option2.text = data.etapid[i].nimi;
+	      option2.value = data.etapid[i].id;
+	      kmproj.add(option2);
+	    }	  
 	   } else {
 	    // VIGA
 	  }   
 	}
-
 	request.onerror = function() {
 	  console.error('JSONi p2rimise viga ' + url);
 	};
