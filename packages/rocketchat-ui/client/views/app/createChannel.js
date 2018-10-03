@@ -246,8 +246,13 @@ Template.createChannel.events({
 					return instance.inUse.set(true);
 				}
 				return;
+			} 
+			//EKM FIX lisame projekti ja valdkonna stringi announcement ja topic v22rtusteks
+			else {
+				Meteor.call('saveRoomSettings', result.id, RoomSettingsEnum.ANNOUNCEMENT, announcement);
+				Meteor.call('saveRoomSettings', result.id, RoomSettingsEnum.TOPIC, topic);
 			}
-
+			///////
 			if (!isPrivate) {
 				RocketChat.callbacks.run('aftercreateCombined', { _id: result.rid, name: result.name });
 			}
