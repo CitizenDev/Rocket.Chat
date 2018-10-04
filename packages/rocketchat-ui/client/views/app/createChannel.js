@@ -1,4 +1,7 @@
 import _ from 'underscore';
+//EKM FIX
+import { call, RocketChat, RoomSettingsEnum } from 'meteor/rocketchat:lib';
+
 
 
 const acEvents = {
@@ -107,7 +110,7 @@ Template.createChannel.helpers({
 		const name = instance.name.get();
 		const valdkond = instance.field1.get();
 		const projekt = instance.field2.get();
-		
+
 		//EKM FIX - valdkond ja projekt ei tohi m6lemad olla valimata
 		if (name.length === 0 || invalid || inUse === true || inUse === undefined || extensions_invalid || (valdkond == '' &&  projekt == '')) {
 			return 'disabled';
@@ -201,11 +204,12 @@ Template.createChannel.events({
 	////EKM FIX
 	'change .dropdownlist_field1'(e, t) {
 		t.field1.set(e.target.value);
-		t.field1txt.set(e.target.attributes.string);
+		t.field1String.set(e.target.options[e.target.selectedIndex].getAttribute('string'));
 	},
 	'change .dropdownlist_field2'(e, t) {
 		t.field2.set(e.target.value);
-		t.field2txt.set(e.target.attributes.string);
+		t.field2String.set(e.target.options[e.target.selectedIndex].getAttribute('string'));
+		t.field2Code.set(e.target.options[e.target.selectedIndex].getAttribute('code'));
 	},
    	 ////
 	'submit .create-channel__content'(e, instance) {
@@ -218,13 +222,24 @@ Template.createChannel.events({
 		const isPrivate = type === 'p';
 		/// EKM FIX ///
 		const valdkond = instance.field1.get();
-		const valdkondtxt = instance.field1txt.get();
 		const projekt = instance.field2.get();
-		const announcement = instance.field2txt.get();
-		const topic = instance.field1txt.get();
+		const pString = instance.field2String.get();
+		const pCode = instance.field2Code.get();
+		const vString = instance.field1String.get();
 		const customFields = {
 			valdkond: valdkond,
-			projekt: projekt
+			projekt: projekt,
+			valdkondString: vString,
+			projektCode: pCode,
+			projektString: pString
+		}
+
+		function fixedName(kood, nimi){
+			if(kood){
+					return kood +': '+ nimi;
+			} else {
+					return name;
+				}
 		}
 		////////////////
 		if (instance.invalid.get() || instance.inUse.get()) {
@@ -237,7 +252,7 @@ Template.createChannel.events({
 		const extraData = Object.keys(instance.extensions_submits)
 			.reduce((result, key) => ({ ...result, ...instance.extensions_submits[key](instance) }), { broadcast });
 
-		Meteor.call(isPrivate ? 'createPrivateGroup' : 'createChannel', name, instance.selectedUsers.get().map((user) => user.username), readOnly, customFields, extraData, function(err, result) {
+		Meteor.call(isPrivate ? 'createPrivateGroup' : 'createChannel', fixedName(pCode, name), instance.selectedUsers.get().map((user) => user.username), readOnly, customFields, extraData, function(err, result) {
 			if (err) {
 				if (err.error === 'error-invalid-name') {
 					return instance.invalid.set(true);
@@ -246,11 +261,15 @@ Template.createChannel.events({
 					return instance.inUse.set(true);
 				}
 				return;
-			} 
+			}
 			//EKM FIX lisame projekti ja valdkonna stringi announcement ja topic v22rtusteks
 			else {
-				Meteor.call('saveRoomSettings', result.id, RoomSettingsEnum.ANNOUNCEMENT, announcement);
-				Meteor.call('saveRoomSettings', result.id, RoomSettingsEnum.TOPIC, topic);
+				if(customFields.projektString){
+					call('saveRoomSettings', result.rid, RoomSettingsEnum.ANNOUNCEMENT, customFields.projektCode+' '+customFields.projektString).then(function() {console.log("Projekt lisatud")});
+				}
+				if(customFields.valdkondString){
+					call('saveRoomSettings', result.rid, RoomSettingsEnum.TOPIC, customFields.valdkondString).then(function() {console.log("Valdkond lisatud")});
+				}
 			}
 			///////
 			if (!isPrivate) {
@@ -259,6 +278,7 @@ Template.createChannel.events({
 
 			return FlowRouter.go(isPrivate ? 'group' : 'channel', { name: result.name }, FlowRouter.current().queryParams);
 		});
+
 		return false;
 	},
 });
@@ -277,14 +297,14 @@ Template.createChannel.onRendered(function() {
 	defaultOption1.value = defaultOption2.value = '';
 	kmproj.add(defaultOption1);
 	kmvaldkond.add(defaultOption2);
-	
+
 	kmproj.selectedIndex = kmvaldkond.selectedIndex = 0;
 
 	const url = 'http://ttop.kodumaja.ee/index.php?seckood=anna_pohip_etapid_ja_projektid';
 
 	const request = new XMLHttpRequest();
 	request.open('GET', url, true);
-	
+
 	request.onload = function() {
 	  if (request.status === 200) {
 	    const data = JSON.parse(request.responseText);
@@ -294,10 +314,11 @@ Template.createChannel.onRendered(function() {
 	      let projektid = data.projektid[i];
 	      option.text = projektid.kood + "   " + projektid.nimi;
 	      option.value = data.projektid[i].id;
-	      option.setAttribute('string', projektid.kood + "   " + projektid.nimi);
+	      option.setAttribute('string', projektid.nimi);
+				option.setAttribute('code', projektid.kood);
 	      kmproj.add(option);
 	    }
-		  
+
 	    let option2;
 	    for (let i = 0; i < data.etapid.length; i++) {
 	      option2 = document.createElement('option');
@@ -306,10 +327,10 @@ Template.createChannel.onRendered(function() {
 	      option2.value = etapid.id;
 	      option2.setAttribute('string', etapid.nimi);
 	      kmvaldkond.add(option2);
-	    }	  
+	    }
 	   } else {
 	    // VIGA
-	  }   
+	  }
 	}
 	request.onerror = function() {
 	  console.error('JSONi p2rimise viga ' + url);
@@ -317,8 +338,8 @@ Template.createChannel.onRendered(function() {
 
 	request.send();
 	/////////////////
-	
-	
+
+
 	const users = this.selectedUsers;
 
 	this.firstNode.querySelector('[name="users"]').focus();
@@ -342,6 +363,7 @@ Template.createChannel.onCreated(function() {
 	this.extensions_validations = {};
 	this.extensions_submits = {};
 	this.name = new ReactiveVar('');
+	this.nameCode = new ReactiveVar('');
 	this.type = new ReactiveVar(RocketChat.authz.hasAllPermission(['create-p']) ? 'p' : 'c');
 	this.readOnly = new ReactiveVar(false);
 	this.broadcast = new ReactiveVar(false);
@@ -350,8 +372,9 @@ Template.createChannel.onCreated(function() {
 	///EKM FIX
 	this.field1 = new ReactiveVar('');
 	this.field2 = new ReactiveVar('');
-	this.field1txt = new ReactiveVar('');
-	this.field2txt = new ReactiveVar('');
+	this.field1String = new ReactiveVar('');
+	this.field2Code = new ReactiveVar('');
+	this.field2String = new ReactiveVar('');
 	/////
 	this.extensions_invalid = new ReactiveVar(false);
 	this.change = _.debounce(() => {
@@ -479,6 +502,3 @@ Template.tokenpass.events({
 		i.requireAll.set(e.currentTarget.checked);
 	},
 });
-
-
-
